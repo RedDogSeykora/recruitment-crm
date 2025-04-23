@@ -1,0 +1,11 @@
+"pgsql.connections": [
+  {
+    "name": "Recruitment CRM",
+    "host": "recruitment-crm.ctmcai6k4y90.us-west-1.rds.amazonaws.com",
+    "port": 5432,
+    "database": "recruitment-crm",
+    "username": "postgres",
+    "password": "Snake5150!",
+    "ssl": "require"
+  }
+]
