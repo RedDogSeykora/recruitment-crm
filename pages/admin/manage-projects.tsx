@@ -1,48 +1,72 @@
-import React, { useState } from 'react';
-import { Home, Users, FileText, XCircle, Menu, Settings, Pencil } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Home, Users, FileText, XCircle, Menu, Settings, Pencil, Check } from 'lucide-react';
+import { useRouter } from 'next/router';
 
 export default function ManageProjectsPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const userRole = 'admin';
+  const router = useRouter();
+  const [projects, setProjects] = useState<any[]>([]);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editedProject, setEditedProject] = useState<any>({});
 
-  const projects = [
-    { id: 'ad50', name: 'AD50', startDate: '2024-06-01', location: 'Los Angeles', budget: '$20,000', actual: '$18,500', status: 'Active' },
-    { id: 'sd19', name: 'SD19', startDate: '2024-06-15', location: 'Santa Barbara', budget: '$25,000', actual: '$24,200', status: 'Active' },
-    { id: 'sd23', name: 'SD23', startDate: '2024-07-01', location: 'San Bernardino', budget: '$22,000', actual: '$15,000', status: 'Inactive' },
-    { id: 'stockton-d3', name: 'Stockton D3', startDate: '2024-07-10', location: 'Stockton', budget: '$18,000', actual: '$16,800', status: 'Active' },
-  ];
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const res = await fetch('/api/projects');
+        const data = await res.json();
+        if (!Array.isArray(data)) {
+          console.error('Expected an array but got:', data);
+          return;
+        }
+        setProjects(data);
+      } catch (err) {
+        console.error('Failed to fetch projects:', err);
+      }
+    };
+  
+    fetchProjects();
+  }, []);
+  
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US');
+  };
+
+  const formatCurrency = (value: any) => {
+    if (value == null || value === '') return '-';
+    const num = Number(value);
+    return isNaN(num) ? '-' : `$${num.toFixed(2)}`;
+  };
+  
+
+  const handleEditClick = (project: any) => {
+    setEditingProjectId(project.id);
+    setEditedProject({ ...project });
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>, field: string) => {
+    setEditedProject((prev: any) => ({ ...prev, [field]: e.target.value }));
+  };
+
+  const handleSaveClick = async () => {
+    try {
+      await fetch(`/api/projects/update/${editingProjectId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editedProject),
+      });
+      const updatedProjects = projects.map((proj) =>
+        proj.id === editingProjectId ? { ...editedProject } : proj
+      );
+      setProjects(updatedProjects);
+      setEditingProjectId(null);
+    } catch (err) {
+      console.error('Failed to update project:', err);
+    }
+  };
 
   return (
-    <div className="flex min-h-screen bg-white text-black">
-      {/* Sidebar */}
-      <aside className={`bg-[#223351] text-[#F6F5F3] p-4 transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-20'}`}>
-        <div className="flex items-center justify-between mb-6">
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-[#F6F5F3] focus:outline-none">
-            <Menu size={20} />
-          </button>
-        </div>
-        <nav className="space-y-4">
-          <a href="/" className="flex items-center gap-2 text-[#F6F5F3] hover:text-gray-300">
-            <Home size={18} /> {sidebarOpen && 'Home'}
-          </a>
-          <a href="#" className="flex items-center gap-2 text-[#F6F5F3] hover:text-gray-300">
-            <Users size={18} /> {sidebarOpen && 'Active Employees'}
-          </a>
-          <a href="#" className="flex items-center gap-2 text-[#F6F5F3] hover:text-gray-300">
-            <FileText size={18} /> {sidebarOpen && 'Active Candidates'}
-          </a>
-          <a href="#" className="flex items-center gap-2 text-[#F6F5F3] hover:text-gray-300">
-            <XCircle size={18} /> {sidebarOpen && 'Denied Applicants'}
-          </a>
-          {userRole === 'admin' && (
-            <a href="/admin/manage-projects" className="flex items-center gap-2 text-[#F6F5F3] hover:text-gray-300">
-              <Settings size={18} /> {sidebarOpen && 'Manage Projects'}
-            </a>
-          )}
-        </nav>
-      </aside>
-
-      {/* Main Content */}
       <main className="flex-1 p-6">
         <h1 className="text-3xl font-bold mb-6">Manage Projects</h1>
 
@@ -50,6 +74,7 @@ export default function ManageProjectsPage() {
           <table className="min-w-full border text-sm">
             <thead className="bg-gray-100">
               <tr>
+                <th className="p-3 text-left font-medium">Client Name</th>
                 <th className="p-3 text-left font-medium">Project Name</th>
                 <th className="p-3 text-left font-medium">Project Start Date</th>
                 <th className="p-3 text-left font-medium">Location</th>
@@ -62,31 +87,66 @@ export default function ManageProjectsPage() {
             <tbody>
               {projects.map((project) => (
                 <tr key={project.id} className="border-t">
-                  <td className="p-3">{project.name}</td>
-                  <td className="p-3">{project.startDate}</td>
-                  <td className="p-3">{project.location}</td>
-                  <td className="p-3">{project.budget}</td>
-                  <td className="p-3">{project.actual}</td>
-                  <td className="p-3">{project.status}</td>
                   <td className="p-3">
-                    <button className="text-blue-600 hover:text-blue-800">
-                      <Pencil size={16} />
-                    </button>
+                    {editingProjectId === project.id ? (
+                      <input type="text" value={editedProject.client_name || ''} onChange={(e) => handleInputChange(e, 'client_name')} className="border px-2 py-1 rounded w-full" />
+                    ) : project.client_name}
+                  </td>
+                  <td className="p-3">
+                    {editingProjectId === project.id ? (
+                      <input type="text" value={editedProject.name || ''} onChange={(e) => handleInputChange(e, 'name')} className="border px-2 py-1 rounded w-full" />
+                    ) : project.name}
+                  </td>
+                  <td className="p-3">
+                    {editingProjectId === project.id ? (
+                      <input type="date" value={editedProject.start_date || ''} onChange={(e) => handleInputChange(e, 'start_date')} className="border px-2 py-1 rounded w-full" />
+                    ) : formatDate(project.startDate)}
+                  </td>
+                  <td className="p-3">
+                    {editingProjectId === project.id ? (
+                      <input type="text" value={editedProject.location || ''} onChange={(e) => handleInputChange(e, 'location')} className="border px-2 py-1 rounded w-full" />
+                    ) : project.location}
+                  </td>
+                  <td className="p-3">
+                    {editingProjectId === project.id ? (
+                      <input type="number" value={editedProject.budget || ''} onChange={(e) => handleInputChange(e, 'budget')} className="border px-2 py-1 rounded w-full" />
+                    ) : formatCurrency(project.budget)}
+                  </td>
+                  <td className="p-3">
+                    {editingProjectId === project.id ? (
+                      <input type="number" value={editedProject.actual || ''} onChange={(e) => handleInputChange(e, 'actual')} className="border px-2 py-1 rounded w-full" />
+                    ) : formatCurrency(project.actual)}
+                  </td>
+                  <td className="p-3">
+                    {editingProjectId === project.id ? (
+                      <select value={editedProject.status || ''} onChange={(e) => handleInputChange(e, 'status')} className="border px-2 py-1 rounded w-full">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    ) : project.status}
+                  </td>
+                  <td className="p-3">
+                    {editingProjectId === project.id ? (
+                      <button className="bg-red hover:bg-navy-dark text-white px-4 py-2 rounded" onClick={handleSaveClick}>
+                        <Check size={16} />
+                      </button>
+                    ) : (
+                      <button className="text-blue-600 hover:text-blue-800" onClick={() => handleEditClick(project)}>
+                        <Pencil size={16} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      <button
-          onClick={() => window.location.href = '/admin/new-project'}
-          className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg"
-        >
+
+        <button onClick={() => window.location.href = '/admin/new-project'} className="bg-red hover:bg-navy-dark text-white px-4 py-2 rounded">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
           </svg>
         </button>
       </main>
-    </div>
   );
 }

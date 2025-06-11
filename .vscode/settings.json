@@ -1,11 +1,23 @@
-"pgsql.connections": [
-  {
-    "name": "Recruitment CRM",
-    "host": "recruitment-crm.ctmcai6k4y90.us-west-1.rds.amazonaws.com",
-    "port": 5432,
-    "database": "recruitment-crm",
-    "username": "postgres",
-    "password": "Snake5150!",
-    "ssl": "require"
-  }
-]
+{
+  "pgsql.connections": [
+    {
+      "name": "Recruitment CRM",
+      "host": "recruitment-crm.ctmcai6k4y90.us-west-1.rds.amazonaws.com",
+      "port": "5432",
+      "database": "recruitment-crm",
+      "username": "postgres",
+      "password": "Snake5150!",
+      "ssl": true
+    }
+  ],
+  "css.validate": false,
+  "postcss.validate": false,
+  "tailwindCSS.includeLanguages": {
+    "css": "css",
+    "postcss": "css"
+  },
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "tailwindCSS.experimental.configFile": "./tailwind.config.js"
+}
